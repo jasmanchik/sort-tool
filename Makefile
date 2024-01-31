@@ -4,4 +4,4 @@ lint:
 	golangci-lint run
 
 start:
-	go run ./cmd/sort -r poems.txt
+	go run ./cmd/sort -i=poems.txt -o=test.txt

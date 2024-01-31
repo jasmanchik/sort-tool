@@ -12,35 +12,29 @@ func main() {
 
 	logger := SetupLogger()
 	cfg := config.New(logger)
-	cfg.ParseFlags()
-
-	fileSort, err := sort.New(cfg)
+	err := cfg.ParseFlags()
+	if err != nil {
+		logger.Error(fmt.Sprintf("failed to parse flags: %v", err))
+	}
 	defer func() {
-		if err := fileSort.Close(); err != nil {
-			logger.Error(fmt.Sprintf("can't close fileSort %v", err))
+		if err := cfg.FileName.Close(); err != nil {
+			logger.Error(fmt.Sprintf("can't close file: %v", err))
+			os.Exit(1)
+		}
+		if err := cfg.OutFileName.Close(); err != nil {
+			logger.Error(fmt.Sprintf("can't close new file: %v", err))
 			os.Exit(1)
 		}
 	}()
+
+	fileSort, err := sort.New(cfg)
 
 	if err := fileSort.Sort(); err != nil {
 		logger.Error(fmt.Sprintf("can't sort data %v", err))
 		os.Exit(1)
 	}
 
-	// Создание файла для записи результатов
-	outputFile, err := os.Create("sorted.txt")
-	if err != nil {
-		logger.Error(fmt.Sprintf("can't create a file: %v", err))
-		os.Exit(1)
-	}
-	defer func() {
-		if err := outputFile.Close(); err != nil {
-			logger.Error(fmt.Sprintf("can't close a new file: %v", err))
-			os.Exit(1)
-		}
-	}()
-
-	if err := fileSort.Write(outputFile); err != nil {
+	if err := fileSort.Write(); err != nil {
 		logger.Error(fmt.Sprintf("can't write data: %v", err))
 		os.Exit(1)
 	}

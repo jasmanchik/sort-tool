@@ -12,4 +12,8 @@ There is utility support for the following keys:
 
 `-u` — do not output duplicate lines
 
-Example execute: `go run ./cmd/sort -r poems.txt`
+`-i` — path to source file
+
+`-o` — path to sorted file. Default is os.Stdout
+
+Example execute: `make start`

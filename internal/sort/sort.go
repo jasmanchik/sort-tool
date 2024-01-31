@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"os"
 	"sort"
 	"sort-tool/internal/config"
 	"strconv"
@@ -12,7 +11,6 @@ import (
 )
 
 type FileSort struct {
-	source  *os.File
 	params  *config.Config
 	rawData string
 	data    []Item
@@ -24,30 +22,23 @@ type Item struct {
 }
 
 func New(config *config.Config) (*FileSort, error) {
-	file, err := os.Open(config.FileName)
-	if err != nil {
-		return nil, err
-	}
-
 	return &FileSort{
-		source:  file,
-		params:  config,
-		rawData: "",
-		data:    make([]Item, 0),
+		params: config,
+		data:   make([]Item, 0),
 	}, nil
 }
 
 func (f *FileSort) Close() error {
-	err := f.source.Close()
+	err := f.params.OutFileName.Close()
 	if err != nil {
-		return err
+		return fmt.Errorf("can't close file %v", err)
 	}
 
 	return nil
 }
 
 func (f *FileSort) read() error {
-	scanner := bufio.NewScanner(f.source)
+	scanner := bufio.NewScanner(f.params.FileName)
 	for scanner.Scan() {
 		line := scanner.Text()
 		columns := strings.Fields(line)
@@ -59,7 +50,7 @@ func (f *FileSort) read() error {
 	}
 
 	if err := scanner.Err(); err != nil {
-		return err
+		return fmt.Errorf("can't scan file %v", err)
 	}
 
 	return nil
@@ -79,36 +70,25 @@ func (f *FileSort) Sort() error {
 			}
 			return false
 		}
+		if f.params.IsReverse {
+			return f.data[i].Key > f.data[j].Key
+		}
 		return f.data[i].Key < f.data[j].Key
 	}
 
 	sort.Slice(f.data, sortFunc)
 
-	if f.params.IsReverse {
-		f.doReverse()
-	}
-
 	return nil
-}
-
-func (f *FileSort) doReverse() bool {
-	if len(f.data) <= 1 {
-		return false
-	}
-	for i, j := 0, len(f.data)-1; i < j; i, j = i+1, j-1 {
-		f.data[i], f.data[j] = f.data[j], f.data[i]
-	}
-	return true
 }
 
 var NoDataError = errors.New("there is no data to write")
 
-func (f *FileSort) Write(out *os.File) error {
+func (f *FileSort) Write() error {
 	if len(f.data) <= 0 {
 		return NoDataError
 	}
 
-	writer := bufio.NewWriter(out)
+	writer := bufio.NewWriter(f.params.OutFileName)
 	hasWritten := make(map[string]struct{})
 	for _, item := range f.data {
 		if f.params.OnlyUnique {
