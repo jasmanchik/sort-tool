@@ -62,6 +62,11 @@ func (f *FileSort) read() error {
 			return fmt.Errorf("failed create output file %v", err)
 		}
 	}
+	defer func() {
+		if err := f.params.InFile.Close(); err != nil {
+			panic(fmt.Sprintf("can't close file: %v", err))
+		}
+	}()
 
 	scanner := bufio.NewScanner(f.params.InFile)
 	for scanner.Scan() {
@@ -137,6 +142,11 @@ func (f *FileSort) Write() error {
 	} else {
 		f.params.OutFile = os.Stdout
 	}
+	defer func() {
+		if err := f.params.OutFile.Close(); err != nil {
+			panic(fmt.Sprintf("can't close file: %v", err))
+		}
+	}()
 
 	writer := bufio.NewWriter(f.params.OutFile)
 	for _, item := range f.data {

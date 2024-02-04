@@ -43,7 +43,6 @@ func TestNew(t *testing.T) {
 }
 
 func TestReverseSort(t *testing.T) {
-
 	cfg := &config.Config{
 		InFileName: "../../test/testdata/input.txt",
 		IsReverse:  true,
