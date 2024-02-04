@@ -16,13 +16,14 @@ func main() {
 		logger.Error(fmt.Sprintf("failed to parse flags: %v", err))
 	}
 
-	fileSort, err := sort.New(cfg)
-	if err := fileSort.Sort(); err != nil {
+	var fileSort *sort.FileSort
+	fileSort, err = sort.New(cfg)
+	if err = fileSort.Sort(); err != nil {
 		logger.Error(fmt.Sprintf("can't sort data %v", err))
 		os.Exit(1)
 	}
 
-	if err := fileSort.Write(); err != nil {
+	if err = fileSort.Write(); err != nil {
 		logger.Error(fmt.Sprintf("can't write data: %v", err))
 		os.Exit(1)
 	}

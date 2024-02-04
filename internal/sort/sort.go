@@ -12,9 +12,8 @@ import (
 )
 
 type FileSort struct {
-	params  *config.Config
-	rawData string
-	data    []Item
+	params *config.Config
+	data   []Item
 }
 
 type Item struct {
@@ -30,10 +29,9 @@ func New(config *config.Config) (*FileSort, error) {
 }
 
 func (f *FileSort) Close() error {
-
 	err := f.params.OutFile.Close()
 	if err != nil {
-		return fmt.Errorf("can't close file %v", err)
+		return fmt.Errorf("can't close file %w", err)
 	}
 
 	return nil
@@ -50,16 +48,13 @@ func fileExists(filename string) bool {
 func (f *FileSort) read() error {
 	if fileExists(f.params.InFileName) {
 		var err error
-		f.params.InFile, err = os.Open(f.params.InFileName)
-		if err != nil {
-			return fmt.Errorf("failed open output file %v", err)
+		if f.params.InFile, err = os.Open(f.params.InFileName); err != nil {
+			return fmt.Errorf("failed open output file %w", err)
 		}
 	} else {
 		var err error
-		fmt.Println(f.params.InFileName)
-		f.params.InFile, err = os.Create(f.params.InFileName)
-		if err != nil {
-			return fmt.Errorf("failed create output file %v", err)
+		if f.params.InFile, err = os.Create(f.params.InFileName); err != nil {
+			return fmt.Errorf("failed create output file %w", err)
 		}
 	}
 	defer func() {
@@ -88,7 +83,7 @@ func (f *FileSort) read() error {
 
 func (f *FileSort) Sort() error {
 	if err := f.read(); err != nil {
-		return fmt.Errorf("can't read file %v", err)
+		return fmt.Errorf("can't read file %w", err)
 	}
 
 	var sortedData []Item
@@ -126,11 +121,11 @@ func (f *FileSort) Sort() error {
 	return nil
 }
 
-var NoDataError = errors.New("there is no data to write")
+var ErrNoData = errors.New("there is no data to write")
 
 func (f *FileSort) Write() error {
-	if len(f.data) <= 0 {
-		return NoDataError
+	if len(f.data) == 0 {
+		return ErrNoData
 	}
 
 	if f.params.OutFileName != "" {
