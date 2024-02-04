@@ -17,11 +17,11 @@ func main() {
 		logger.Error(fmt.Sprintf("failed to parse flags: %v", err))
 	}
 	defer func() {
-		if err := cfg.FileName.Close(); err != nil {
+		if err := cfg.InFile.Close(); err != nil {
 			logger.Error(fmt.Sprintf("can't close file: %v", err))
 			os.Exit(1)
 		}
-		if err := cfg.OutFileName.Close(); err != nil {
+		if err := cfg.OutFile.Close(); err != nil {
 			logger.Error(fmt.Sprintf("can't close new file: %v", err))
 			os.Exit(1)
 		}

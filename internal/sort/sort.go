@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"sort-tool/internal/config"
 	"strconv"
@@ -29,7 +30,8 @@ func New(config *config.Config) (*FileSort, error) {
 }
 
 func (f *FileSort) Close() error {
-	err := f.params.OutFileName.Close()
+
+	err := f.params.OutFile.Close()
 	if err != nil {
 		return fmt.Errorf("can't close file %v", err)
 	}
@@ -37,8 +39,31 @@ func (f *FileSort) Close() error {
 	return nil
 }
 
+func fileExists(filename string) bool {
+	_, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !os.IsNotExist(err)
+}
+
 func (f *FileSort) read() error {
-	scanner := bufio.NewScanner(f.params.FileName)
+	if fileExists(f.params.InFileName) {
+		var err error
+		f.params.InFile, err = os.Open(f.params.InFileName)
+		if err != nil {
+			return fmt.Errorf("failed open output file %v", err)
+		}
+	} else {
+		var err error
+		fmt.Println(f.params.InFileName)
+		f.params.InFile, err = os.Create(f.params.InFileName)
+		if err != nil {
+			return fmt.Errorf("failed create output file %v", err)
+		}
+	}
+
+	scanner := bufio.NewScanner(f.params.InFile)
 	for scanner.Scan() {
 		line := scanner.Text()
 		columns := strings.Fields(line)
@@ -61,6 +86,20 @@ func (f *FileSort) Sort() error {
 		return fmt.Errorf("can't read file %v", err)
 	}
 
+	var sortedData []Item
+	if f.params.OnlyUnique {
+		uniqueKeys := make(map[string]struct{})
+		for _, item := range f.data {
+			key := item.Key
+			if _, exists := uniqueKeys[key]; !exists {
+				uniqueKeys[key] = struct{}{}
+				sortedData = append(sortedData, item)
+			}
+		}
+	} else {
+		sortedData = f.data
+	}
+
 	sortFunc := func(i, j int) bool {
 		if f.params.KeyColumn.IsNumeric {
 			numI, errI := strconv.Atoi(f.data[i].Key)
@@ -71,12 +110,13 @@ func (f *FileSort) Sort() error {
 			return false
 		}
 		if f.params.IsReverse {
-			return f.data[i].Key > f.data[j].Key
+			return sortedData[i].Key > sortedData[j].Key
 		}
-		return f.data[i].Key < f.data[j].Key
+		return sortedData[i].Key < sortedData[j].Key
 	}
 
-	sort.Slice(f.data, sortFunc)
+	sort.Slice(sortedData, sortFunc)
+	f.data = sortedData
 
 	return nil
 }
@@ -88,16 +128,18 @@ func (f *FileSort) Write() error {
 		return NoDataError
 	}
 
-	writer := bufio.NewWriter(f.params.OutFileName)
-	hasWritten := make(map[string]struct{})
-	for _, item := range f.data {
-		if f.params.OnlyUnique {
-			if _, ok := hasWritten[item.Line]; ok {
-				continue
-			}
-			hasWritten[item.Line] = struct{}{}
+	if f.params.OutFileName != "" {
+		var err error
+		f.params.OutFile, err = os.Create(f.params.OutFileName)
+		if err != nil {
+			return fmt.Errorf("failed create file %v", err)
 		}
+	} else {
+		f.params.OutFile = os.Stdout
+	}
 
+	writer := bufio.NewWriter(f.params.OutFile)
+	for _, item := range f.data {
 		if _, err := writer.WriteString(item.Line + "\n"); err != nil {
 			return fmt.Errorf("can't write string %w", err)
 		}

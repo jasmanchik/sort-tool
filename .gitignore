@@ -1,1 +1,4 @@
 .idea
+*.txt
+!test/**/*.txt
+/cmd/sort/sort
